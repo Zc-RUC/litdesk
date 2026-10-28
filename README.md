@@ -11,7 +11,7 @@ LitDesk is a Zotero-inspired desktop-style web app for managing a local PDF libr
 ## Highlights
 
 - **Watched folders** — recursively import existing PDFs and automatically detect additions, edits, renames, deletions, and restorations. Notes and metadata survive renames and missing files. Original PDFs are never moved or rewritten.
-- **Library management** — full-text field search, folders, tags, sorting, editable bibliographic metadata, and optional DOI enrichment through Crossref.
+- **Library management** — full-text field search, folders, tags, sorting, editable bibliographic metadata, and optional DOI enrichment through Crossref. Chinese PDFs named `title_author_year.pdf` get reliable filename-first titles and years, with first-page author/journal extraction and CNKI cleanup.
 - **Reading and notes** — built-in PDF.js reader with zoom and page navigation. Turn selected text into a note with its PDF page number. Notes support Markdown and autosave.
 - **Real CSL citations** — multi-item in-text citations and bibliographies using Citeproc. Includes APA 7, GB/T 7714—2015 (numeric and author-date), IEEE, MLA 9, and Chicago author-date. Import additional `.csl` styles and export CSL JSON or BibTeX.
 - **Citation fields with gray shading** — insert real fields rather than permanently highlighted text. Fields retain document IDs, style IDs, and citation kind.

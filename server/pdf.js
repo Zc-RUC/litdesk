@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { getDocument as openPdf } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { db } from './db.js';
+import { cleanMetadataText, parseFilenameMetadata, usefulMetadataTitle, bestTitleFromLines, authorsFromFirstPage, publicationFromLines } from './metadata.js';
 
 async function loadPdf(filePath) {
   const data = new Uint8Array(await readFile(filePath));
@@ -27,14 +28,21 @@ async function pageText(page) {
 }
 
 export function normalizeDoi(value = '') {
-  const match = String(value).replace(/^https?:\/\/(dx\.)?doi\.org\//i, '').replace(/^doi:\s*/i, '').match(/10\.\d{4,9}\/[^\s<>"']+/i);
-  return match ? match[0].replace(/[.,;\])}]+$/g, '') : '';
+  const source = cleanMetadataText(value).replace(/^https?:\/\/(dx\.)?doi\.org\//i, '').replace(/^doi:\s*/i, '');
+  const match = source.match(/10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i);
+  if (!match) return '';
+  let doi = match[0];
+  const continuation = source.slice(match.index + match[0].length).match(/^\s*(\.\d{1,4})(?=\s|$)/);
+  if (continuation) doi += continuation[1];
+  doi = doi.replace(/(?<=\d)(?:Finance|Journal|Science|Management|Press|Copyright|Received|Accepted).*$/g, '');
+  return doi.replace(/[.,;*\])}]+$/g, '');
 }
 
 export function parseAuthors(value = '') {
   if (Array.isArray(value)) return value;
-  return String(value).split(/\s*(?:;|\band\b|&|、)\s*/i).map((name) => name.trim()).filter(Boolean).map((name) => {
-    if (/^[\u3400-\u9fff·•\s]+$/.test(name) && !name.includes(' ')) return { literal: name };
+  const invalid = /^(?:cnki|author|admin|administrator|user|unknown|anonymous|untitled|none|null|n\/a)$/i;
+  return String(value).split(/\s*(?:;|\band\b|&|、)\s*/i).map(cleanMetadataText).filter((name) => name && !invalid.test(name)).map((name) => {
+    if (/^[\u3400-\u9fff·•\s]+$/.test(name)) return { literal: name.replace(/\s+/g, '') };
     if (name.includes(',')) {
       const [family, ...given] = name.split(',');
       return { family: family.trim(), given: given.join(',').trim() };
@@ -46,10 +54,7 @@ export function parseAuthors(value = '') {
 }
 
 export function filenameTitle(filePath) {
-  return path.basename(filePath, path.extname(filePath))
-    .replace(/[_]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return cleanMetadataText(path.basename(filePath, path.extname(filePath)).replace(/[_]+/g, ' '));
 }
 
 export async function extractPdfSnapshot(filePath) {
@@ -62,22 +67,23 @@ export async function extractPdfSnapshot(filePath) {
       pages.push(await pageText(await pdf.getPage(number)));
     }
     const text = pages.join('\n');
-    const lines = text.split('\n').map((line) => line.trim()).filter((line) => line.length >= 6);
-    const fallbackTitle = lines.find((line) =>
-      line.length <= 300 && !/^(doi|https?|www\.|copyright|©|issn|received|accepted|abstract|journal)\b/i.test(line)
-    ) || '';
-    const infoTitle = String(info?.Title || '').trim();
-    const title = infoTitle && !/^(untitled|microsoft word|adobe|scanned)/i.test(infoTitle)
+    const lines = text.split('\n').map(cleanMetadataText).filter(Boolean);
+    const fileMetadata = parseFilenameMetadata(filePath);
+    const infoTitle = cleanMetadataText(info?.Title || '');
+    const title = fileMetadata?.title || (usefulMetadataTitle(infoTitle)
       ? infoTitle
-      : fallbackTitle || filenameTitle(filePath);
-    const year = String(info?.CreationDate || '').match(/(?:D:)?((?:19|20)\d{2})/)?.[1]
-      || text.match(/\b(?:19|20)\d{2}\b/)?.[0] || '';
+      : bestTitleFromLines(lines, filenameTitle(filePath)));
+    const baselineAuthors = fileMetadata ? parseAuthors(fileMetadata.authorText) : parseAuthors(info?.Author || '');
+    const year = fileMetadata?.year
+      || pages[0]?.match(/\b(?:19|20)\d{2}\b/)?.[0]
+      || String(info?.CreationDate || '').match(/(?:D:)?((?:19|20)\d{2})/)?.[1]
+      || '';
     return {
-      title: title.replace(/\s+/g, ' ').trim(),
-      authors: parseAuthors(info?.Author || ''),
+      title,
+      authors: authorsFromFirstPage(lines, baselineAuthors),
       year,
       doi: normalizeDoi(text),
-      publication: String(info?.Subject || '').trim(),
+      publication: publicationFromLines(lines, title, String(info?.Subject || '')),
       pageCount: pdf.numPages,
       hasText: text.replace(/\s/g, '').length > 80,
     };
