@@ -18,7 +18,7 @@ export default function Inspector({ document, tab, onTabChange, onClose, onUpdat
         <button className={classNames(tab === 'notes' && 'active')} onClick={() => onTabChange('notes')}><NotebookPen size={15} />笔记</button>
       </div>
       <div className="inspector-content">
-        {tab === 'details' && <MetadataPanel document={document} onUpdated={onUpdated} onOpenReader={onOpenReader} onRemove={onRemove} notify={notify} />}
+        {tab === 'details' && <MetadataPanel document={document} onUpdated={onUpdated} onOpenReader={onOpenReader} onRemove={onRemove} settings={settings} onOpenSettings={onOpenSettings} notify={notify} />}
         {tab === 'ai' && <AiPanel document={document} settings={settings} onOpenSettings={onOpenSettings} onCountsChange={onCountsChange} notify={notify} />}
         {tab === 'notes' && <NotePanel document={document} quoteRequest={quoteRequest} onQuoteConsumed={onQuoteConsumed} onCountsChange={onCountsChange} notify={notify} />}
       </div>

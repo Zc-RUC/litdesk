@@ -12,7 +12,7 @@ export const SUMMARY_SECTIONS = [
   ['limitations', '局限与阅读提示'],
 ];
 
-async function chatCompletion(config, messages, { jsonMode = false, maxTokens = 3000 } = {}) {
+export async function chatCompletion(config, messages, { jsonMode = false, maxTokens = 3000 } = {}) {
   if (!config.baseUrl || !config.model) throw new Error('请先在设置中填写 API 地址和模型名称');
   const body = {
     model: config.model,

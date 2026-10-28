@@ -34,7 +34,7 @@ export function normalizeDoi(value = '') {
   let doi = match[0];
   const continuation = source.slice(match.index + match[0].length).match(/^\s*(\.\d{1,4})(?=\s|$)/);
   if (continuation) doi += continuation[1];
-  doi = doi.replace(/(?<=\d)(?:Finance|Journal|Science|Management|Press|Copyright|Received|Accepted).*$/g, '');
+  doi = doi.replace(/(?<=\d)(?:Finance|Journal|Science|Management|Press|Copyright|Received|Accepted|Abstract|Introduction|Keywords|Contents).*$/g, '');
   return doi.replace(/[.,;*\])}]+$/g, '');
 }
 

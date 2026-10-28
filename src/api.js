@@ -24,6 +24,7 @@ export const api = {
     remove: (id) => request(`/api/documents/${id}`, { method: 'DELETE' }),
     refresh: (id) => request(`/api/documents/${id}/refresh`, { method: 'POST', body: {} }),
     enrich: (id) => request(`/api/documents/${id}/enrich`, { method: 'POST', body: {} }),
+    completeMetadata: (id) => request(`/api/documents/${id}/complete-metadata`, { method: 'POST', body: {} }),
     reveal: (id) => request(`/api/documents/${id}/reveal`, { method: 'POST', body: {} }),
     notes: (id) => request(`/api/documents/${id}/notes`),
     summary: (id) => request(`/api/documents/${id}/summary`),

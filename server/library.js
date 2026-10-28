@@ -146,7 +146,7 @@ export class Library extends EventEmitter {
     }
     const timestamp = now();
     if (record) {
-      const preserveManual = record.metadata_source === 'manual';
+      const preserveManual = ['manual', 'ai'].includes(record.metadata_source);
       if (preserveManual) {
         db.prepare(`UPDATE documents SET folder_id = ?, file_path = ?, file_size = ?, file_mtime = ?, content_hash = ?,
           page_count = ?, missing = 0, extraction_error = ?, updated_at = ? WHERE id = ?`)

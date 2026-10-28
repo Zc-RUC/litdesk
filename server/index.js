@@ -8,6 +8,7 @@ import { getDocumentPages } from './pdf.js';
 import { listStyles, addStyle, renderCitation, exportCsl, exportBibtex } from './citations.js';
 import { getPublicSettings, saveSettings } from './settings.js';
 import { summarizeDocument, getSummary, summaryToMarkdown, testAiConnection } from './ai.js';
+import { completeDocumentMetadata } from './metadata-ai.js';
 import { chooseFolder, integrationStatus, pasteToApplication, revealFile } from './integrations.js';
 
 const app = express();
@@ -92,6 +93,11 @@ app.delete('/api/documents/:id', (req, res) => {
 });
 app.post('/api/documents/:id/refresh', asyncRoute(async (req, res) => res.json(await library.refreshDocument(req.params.id))));
 app.post('/api/documents/:id/enrich', asyncRoute(async (req, res) => res.json(await library.enrichDocument(req.params.id))));
+app.post('/api/documents/:id/complete-metadata', asyncRoute(async (req, res) => {
+  const result = await completeDocumentMetadata(req.params.id);
+  if (result.changedFields.length) library.emit('update', { type: 'document-updated', id: req.params.id });
+  res.json(result);
+}));
 app.get('/api/documents/:id/file', (req, res, next) => {
   const document = requireDocument(req.params.id);
   if (!document.file_path || !existsSync(document.file_path)) return res.status(404).json({ error: 'PDF 文件当前不可用' });

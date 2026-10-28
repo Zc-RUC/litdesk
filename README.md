@@ -69,7 +69,11 @@ The Vite development page runs at `http://localhost:5173` and proxies API calls 
 
 Open **Settings** and enter an OpenAI-compatible Base URL, model name, and API key. Presets are provided for OpenAI, Kimi, DeepSeek, and a local model endpoint.
 
-The configured service must support the `/chat/completions` endpoint. LitDesk only sends paper text after you explicitly test the connection or request an analysis. Long documents use relevant pages, including abstract, methods, data, results, and conclusion sections, rather than only the first page. Scanned PDFs need OCR before AI analysis.
+The configured service must support the `/chat/completions` endpoint. LitDesk only sends paper text after you explicitly test the connection, request an analysis, or use AI completion. Long documents use relevant pages, including abstract, methods, data, results, and conclusion sections, rather than only the first page. Scanned PDFs need OCR before AI analysis.
+
+### One-click AI metadata completion
+
+Open a document's **Details** tab and click **One-click AI completion**. LitDesk reads the first three PDF pages and your existing bibliographic data, then fills missing authors, publication, DOI, abstract, language, pages, volume, issue, publisher, and URL fields. It **only fills empty fields and never overwrites existing values**, including manually edited metadata. The result reports exactly which fields changed, and AI-completed fields are protected from subsequent automatic PDF rescans. Repeated completion does nothing when no fields are missing. Scanned PDFs or files with too little extractable text return a clear OCR-required message instead of a fabricated result.
 
 You can also configure AI through environment variables:
 

@@ -159,6 +159,10 @@ input[type='checkbox'] { accent-color: var(--green); }
 .reader-card strong { display: block; margin-bottom: 4px; color: #3b594b; font-size: 11px; }
 .reader-card span { color: #83948a; font-size: 9px; }
 .reader-card > span:last-child { color: var(--green); font-size: 10px; font-weight: 600; }
+.ai-complete-button { width: 100%; display: flex; align-items: center; gap: 7px; padding: 9px 10px; margin: -7px 0 17px; border: 1px solid #e4dcc7; border-radius: 8px; color: #80663f; background: #faf5e9; text-align: left; transition: .15s; }
+.ai-complete-button:hover:not(:disabled) { border-color: #c8ae77; background: #f6edda; }
+.ai-complete-button strong { flex: 0 0 auto; font-size: 10px; }
+.ai-complete-button small { margin-left: auto; color: #a08e70; font-size: 8px; font-weight: 400; line-height: 1.4; text-align: right; }
 .metadata-section-heading { display: flex; align-items: center; justify-content: space-between; margin: 0 0 13px; color: #64766c; font-size: 10px; font-weight: 700; }
 .source-badge { padding: 3px 6px; border-radius: 4px; color: #829187; background: #edf1ea; font-size: 8px; font-weight: 500; }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; min-width: 0; }

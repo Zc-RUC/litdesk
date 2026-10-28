@@ -3,11 +3,12 @@ import { Save, LoaderCircle, RefreshCw, Sparkles, FolderOpen, FileText, Trash2 }
 import { api } from '../api.js';
 import { authorsToText, textToAuthors, fileSize, formatDate } from '../utils.js';
 
-const sourceNames = { pdf: 'PDF 自动识别', crossref: 'Crossref 补全', manual: '手动编校', filename: '文件名' };
+const sourceNames = { pdf: 'PDF 自动识别', crossref: 'Crossref 补全', manual: '手动编校', filename: '文件名', ai: 'AI 补全' };
+const fieldLabels = { title: '题名', authors: '作者', year: '年份', publication: '来源', doi: 'DOI', abstract: '摘要', language: '语言', item_type: '文献类型', pages: '页码', volume: '卷', issue: '期', publisher: '出版方', url: 'URL' };
 const fields = ['title', 'year', 'publication', 'doi', 'abstract', 'language', 'item_type', 'pages', 'volume', 'issue', 'publisher', 'url'];
 const makeForm = (document) => ({ ...Object.fromEntries(fields.map((field) => [field, document[field] || ''])), authors: authorsToText(document.authors), tags: document.tags.join(', ') });
 
-export default function MetadataPanel({ document, onUpdated, onOpenReader, onRemove, notify }) {
+export default function MetadataPanel({ document, onUpdated, onOpenReader, onRemove, settings, onOpenSettings, notify }) {
   const [form, setForm] = useState(makeForm(document));
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -27,8 +28,10 @@ export default function MetadataPanel({ document, onUpdated, onOpenReader, onRem
       onUpdated(updated);
       setDirty(false);
       notify('元数据已保存');
+      return updated;
     } catch (error) {
       notify(error.message, 'warning');
+      return null;
     } finally {
       setSaving(false);
     }
@@ -47,12 +50,39 @@ export default function MetadataPanel({ document, onUpdated, onOpenReader, onRem
     }
   };
 
+  const completeMetadata = async () => {
+    if (!settings?.ai?.configured) {
+      onOpenSettings();
+      return;
+    }
+    if (dirty && !(await save())) return;
+    setWorking('ai-complete');
+    try {
+      const result = await api.documents.completeMetadata(document.id);
+      onUpdated(result.document);
+      if (result.changedFields.length) {
+        notify(`AI 补全完成：${result.changedFields.map((field) => fieldLabels[field] || field).join('、')}`, 'success', 6000);
+      } else {
+        notify(result.model ? 'AI 未找到有原文依据的补全信息' : '没有需要补全的空缺字段', 'warning', 6000);
+      }
+    } catch (error) {
+      notify(`AI 补全失败：${error.message}`, 'warning', 8000);
+    } finally {
+      setWorking('');
+    }
+  };
+
   return (
     <div className="metadata-panel">
       <button className="reader-card" onClick={onOpenReader} disabled={document.missing}>
         <div className="reader-card-icon"><FileText size={23} /></div>
         <div><strong>{document.missing ? 'PDF 文件不可用' : '打开 PDF 阅读器'}</strong><span>{document.page_count ? `${document.page_count} 页` : '页数待识别'} · {fileSize(document.file_size)}</span></div>
         <span>阅读</span>
+      </button>
+      <button className="ai-complete-button" onClick={completeMetadata} disabled={document.missing || Boolean(working)} title={settings?.ai?.configured ? '仅填补空缺字段，不覆盖已有内容' : '先在设置中配置 AI API'}>
+        {working === 'ai-complete' ? <LoaderCircle className="spin" size={16} /> : <Sparkles size={16} />}
+        <strong>{working === 'ai-complete' ? 'AI 补全中…' : '一键 AI 补全'}</strong>
+        <small>{working === 'ai-complete' ? '正在读取首页并核对字段' : '仅填空缺，不覆盖已有内容'}</small>
       </button>
       {document.extraction_error && <div className="inline-warning">PDF 元数据读取不完整：{document.extraction_error}</div>}
       <div className="metadata-section-heading"><span>书目信息</span><span className="source-badge">{sourceNames[document.metadata_source] || document.metadata_source}</span></div>

@@ -97,7 +97,7 @@ export function SettingsModal({ settings, integrations, onSaved, onClose, notify
             {settings?.ai?.environmentKey && <p className="field-hint">当前由 LITDESK_AI_API_KEY 环境变量提供密钥，优先于本地保存值。</p>}
             <label className="checkbox-label"><input type="checkbox" checked={clearApiKey} onChange={(event) => setClearApiKey(event.target.checked)} />清除本地保存的 API Key</label>
             <div className="settings-actions"><button className="button secondary" disabled={Boolean(busy)} onClick={test}>{busy === 'test' ? <LoaderCircle className="spin" size={15} /> : <PlugZap size={15} />}保存并测试连接</button><button className="button primary" disabled={Boolean(busy)} onClick={saveOnly}>{busy === 'save' ? <LoaderCircle className="spin" size={15} /> : null}保存设置</button></div>
-            <div className="settings-privacy"><ShieldCheck size={15} /><p>密钥以仅当前用户可读权限保存在 LitDesk 本地数据目录。只有点击“测试”或“解析”时才会连接所配置的服务商；不会经过其他中继。</p></div>
+            <div className="settings-privacy"><ShieldCheck size={15} /><p>密钥以仅当前用户可读权限保存在 LitDesk 本地数据目录。只有点击“测试”“解析”或“AI 补全”时才会连接所配置的服务商；不会经过其他中继。</p></div>
           </section>
           <section className="settings-section"><div className="settings-heading"><Info size={18} /><div><h3>Word / WPS 集成</h3><p>在当前光标处插入带浅灰底纹的域格式引文</p></div></div>
             <div className="integration-list">{['word', 'wps'].map((target) => <div key={target}>{integrations?.[target]?.installed ? <CheckCircle2 className="success-icon" size={18} /> : <XCircle className="warning-icon" size={18} />}<span><strong>{integrations?.[target]?.label || target}</strong><small>{integrations?.[target]?.installed ? '已检测 · 可通过引用中心插入' : '未在标准应用目录检测到'}</small></span></div>)}</div>
