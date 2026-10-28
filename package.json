@@ -1,0 +1,35 @@
+{
+  "name": "litdesk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A private, local-first literature workspace",
+  "scripts": {
+    "dev": "concurrently -k \"node server/index.js\" \"vite\"",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "check": "node --check server/index.js && node --check server/db.js && node --check server/library.js && node --check server/pdf.js && node --check server/citations.js && node --check server/ai.js && node --check server/integrations.js && node --check server/citation-docx.js && node --check server/wps.js"
+  },
+  "dependencies": {
+    "@fontsource/dm-sans": "^5.3.0",
+    "@fontsource/source-serif-4": "^5.3.1",
+    "chokidar": "^4.0.3",
+    "citeproc": "^2.4.63",
+    "dompurify": "^3.2.6",
+    "express": "^5.3.0",
+    "fflate": "^0.8.3",
+    "lucide-react": "^0.468.0",
+    "marked": "^15.0.7",
+    "pdfjs-dist": "5.4.149",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.3",
+    "concurrently": "^9.2.1",
+    "vite": "^7.1.7"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}
