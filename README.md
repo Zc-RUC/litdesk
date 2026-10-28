@@ -18,6 +18,10 @@ LitDesk is a Zotero-inspired desktop-style web app for managing a local PDF libr
 - **Optional AI analysis** — summarize the research question, research design, data and samples, analysis methods, findings, and limitations, with source-page references. Save the result as a note.
 - **Local by default** — loopback-only server, local SQLite database, bundled fonts, and no required cloud account.
 
+## Online demo
+
+Try the [hosted LitDesk demo](https://zc-ruc.github.io/-/litdesk/). It uses built-in sample documents and a browser mock API, so it does not read your local files, call a real AI provider, or automate Word/WPS. Changes reset when the page reloads. The full watched-folder, local database, real AI, and desktop integrations require the local deployment below.
+
 ## Local deployment
 
 ### Requirements
