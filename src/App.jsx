@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LibraryBig, Search, FolderPlus, Settings2, BookOpen, Files, FileWarning, NotebookPen, Tag, ChevronDown, Check, Plus, ArrowUpRight, LoaderCircle, RefreshCw, X, Quote, PanelRightClose, Wifi, WifiOff } from 'lucide-react';
+import { LibraryBig, Search, FolderPlus, Settings2, BookOpen, Files, FileWarning, NotebookPen, Tag, ChevronDown, Check, Plus, ArrowUpRight, LoaderCircle, RefreshCw, X, Quote, PanelRightClose, Wifi, WifiOff, Sparkles } from 'lucide-react';
 import { api } from './api.js';
 import { formatAuthors, classNames } from './utils.js';
 import Inspector from './components/Inspector.jsx';
 import PdfReader from './components/PdfReader.jsx';
 import CitationPanel from './components/CitationPanel.jsx';
 import NotesExplorer from './components/NotesExplorer.jsx';
+import AiProgress from './components/AiProgress.jsx';
 import { FolderManager, SettingsModal } from './components/Modals.jsx';
 
 const emptyData = { documents: [], folders: [], styles: [], integrations: {}, settings: {}, stats: {}, tags: [] };
@@ -28,8 +29,10 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [liveStatus, setLiveStatus] = useState('online');
   const [aiProgress, setAiProgress] = useState({});
+  const [batchJob, setBatchJob] = useState(null);
   const initialSelection = useRef(false);
   const searchRef = useRef(null);
+  const batchControllerRef = useRef(null);
 
   const notify = useCallback((message, type = 'success', duration = 3500) => {
     const id = crypto.randomUUID();
@@ -121,6 +124,8 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler);
   }, [openCitation]);
 
+  useEffect(() => () => batchControllerRef.current?.abort(), []);
+
   const changeStyle = (value) => { setStyleId(value); localStorage.setItem('litdesk.citationStyle', value); };
   const updateDocument = (updated) => setData((current) => ({ ...current, documents: current.documents.map((document) => document.id === updated.id ? updated : document) }));
   const removeDocument = async () => {
@@ -132,11 +137,44 @@ export default function App() {
       notify('文献记录已移除，原 PDF 未改动');
     } catch (error) { notify(error.message, 'warning'); }
   };
+  const cancelBatch = () => batchControllerRef.current?.abort();
+  const completeBatch = async () => {
+    if (batchJob || !selectedIds.length) return;
+    if (!data.settings.ai?.configured) {
+      setModal('settings');
+      notify('请先在设置中配置 AI API', 'warning');
+      return;
+    }
+    const ids = [...selectedIds];
+    const controller = new AbortController();
+    const requestId = crypto.randomUUID();
+    batchControllerRef.current = controller;
+    setBatchJob({ requestId, total: ids.length });
+    try {
+      const result = await api.documents.completeMetadataBatch(ids, { signal: controller.signal, requestId });
+      await refresh().catch(() => {});
+      const failure = result.items.find((item) => !item.success);
+      notify(`批量补全完成：${result.succeeded} 篇成功${result.failed ? `，${result.failed} 篇失败` : ''}${failure ? `；${failure.title}：${failure.error}` : ''}`, result.failed ? 'warning' : 'success', 9000);
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        await refresh().catch(() => {});
+        notify('已停止批量补全，已完成的修改已保留', 'warning');
+      } else {
+        notify(`批量补全失败：${error.message}`, 'warning', 8000);
+      }
+    } finally {
+      if (batchControllerRef.current === controller) {
+        batchControllerRef.current = null;
+        setBatchJob(null);
+      }
+    }
+  };
   const jumpToNote = (id) => { setActiveId(id); setView('library'); setTab('notes'); };
   const setLibraryView = (next) => { setView(next); setFolderFilter(null); setTagFilter(null); };
 
   const allVisibleSelected = filteredDocuments.length > 0 && filteredDocuments.every((document) => selectedIds.includes(document.id));
   const currentFolder = data.folders.find((folder) => folder.id === Number(folderFilter));
+  const currentBatchProgress = batchJob && aiProgress['batch:batch-complete-metadata']?.requestId === batchJob.requestId ? aiProgress['batch:batch-complete-metadata'] : null;
 
   return (
     <div className="app-shell">
@@ -203,7 +241,7 @@ export default function App() {
               </article>)}
             </div>
           </>}
-          {selectedIds.length > 0 && view !== 'notes' && <div className="citation-tray"><button className="selection-count" onClick={() => setSelectedIds([])}><span>{selectedIds.length}</span>已选<X size={12} /></button><select value={styleId} onChange={(event) => changeStyle(event.target.value)}>{data.styles.map((style) => <option key={style.id} value={style.id}>{style.shortName}</option>)}</select><button className="button primary" onClick={() => setModal('citation')}><Quote size={15} />引用文献<kbd>⌘⇧C</kbd></button></div>}
+          {selectedIds.length > 0 && view !== 'notes' && <div className="citation-tray"><button className="selection-count" onClick={() => setSelectedIds([])}><span>{selectedIds.length}</span>已选<X size={12} /></button><select value={styleId} onChange={(event) => changeStyle(event.target.value)}>{data.styles.map((style) => <option key={style.id} value={style.id}>{style.shortName}</option>)}</select><button className="button secondary" disabled={Boolean(batchJob)} onClick={completeBatch} title="逐篇补全，只填空缺，不覆盖已有内容"><Sparkles size={15} />批量 AI 补全</button><button className="button primary" onClick={() => setModal('citation')}><Quote size={15} />引用文献<kbd>⌘⇧C</kbd></button></div>}
         </main>
 
         <Inspector document={activeDocument} tab={tab} onTabChange={setTab} onClose={() => setActiveId(null)} onUpdated={updateDocument} onOpenReader={() => setModal('reader')} onRemove={removeDocument} settings={data.settings} onOpenSettings={() => setModal('settings')} quoteRequest={quoteRequest} onQuoteConsumed={() => setQuoteRequest(null)} onCountsChange={() => refresh().catch(() => {})} notify={notify} aiProgress={aiProgress} />
@@ -213,6 +251,7 @@ export default function App() {
       {modal === 'citation' && <CitationPanel ids={selectedIds} documents={data.documents} styles={data.styles} styleId={styleId} onStyleChange={changeStyle} onStyleAdded={(style) => setData((current) => ({ ...current, styles: [...current.styles, style] }))} integrations={data.integrations} onClose={() => setModal(null)} notify={notify} />}
       {modal === 'folders' && <FolderManager folders={data.folders} onClose={() => setModal(null)} onChanged={refresh} notify={notify} />}
       {modal === 'settings' && <SettingsModal settings={data.settings} integrations={data.integrations} onSaved={(settings) => setData((current) => ({ ...current, settings }))} onClose={() => setModal(null)} notify={notify} />}
+      {batchJob && <div className="batch-ai-progress"><AiProgress onCancel={cancelBatch} progress={currentBatchProgress} /></div>}
       <div className="toast-stack">{toasts.map((toast) => <div key={toast.id} className={classNames('toast', toast.type)}><span />{toast.message}<button onClick={() => setToasts((items) => items.filter((item) => item.id !== toast.id))}><X size={14} /></button></div>)}</div>
     </div>
   );

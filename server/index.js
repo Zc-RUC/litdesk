@@ -9,6 +9,7 @@ import { listStyles, addStyle, renderCitation, exportCsl, exportBibtex } from '.
 import { getPublicSettings, saveSettings } from './settings.js';
 import { summarizeDocument, getSummary, summaryToMarkdown, testAiConnection } from './ai.js';
 import { completeDocumentMetadata } from './metadata-ai.js';
+import { completeDocumentMetadataBatch } from './batch-ai.js';
 import { chooseFolder, integrationStatus, pasteToApplication, revealFile } from './integrations.js';
 
 const app = express();
@@ -93,6 +94,16 @@ app.delete('/api/documents/:id', (req, res) => {
 });
 app.post('/api/documents/:id/refresh', asyncRoute(async (req, res) => res.json(await library.refreshDocument(req.params.id))));
 app.post('/api/documents/:id/enrich', asyncRoute(async (req, res) => res.json(await library.enrichDocument(req.params.id))));
+app.post('/api/documents/complete-metadata', asyncRoute(async (req, res) => {
+  const documents = selectedDocuments(req.body.ids);
+  const controller = new AbortController();
+  req.socket.on('close', () => controller.abort());
+  const requestId = String(req.body.requestId || '').slice(0, 100);
+  const onProgress = (progress) => library.emit('update', { ...progress, type: 'ai-progress', operation: 'batch-complete-metadata', documentId: 'batch', requestId });
+  const result = await completeDocumentMetadataBatch(documents, { signal: controller.signal, onProgress });
+  if (result.items.some((item) => item.changedFields?.length)) library.emit('update', { type: 'documents-updated' });
+  res.json(result);
+}));
 app.post('/api/documents/:id/complete-metadata', asyncRoute(async (req, res) => {
   const controller = new AbortController();
   req.socket.on('close', () => controller.abort());

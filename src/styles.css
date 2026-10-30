@@ -137,6 +137,8 @@ input[type='checkbox'] { accent-color: var(--green); }
 .citation-tray > select { max-width: 110px; padding: 4px; border: 0; background: transparent; color: #64756b; font-size: 10px; }
 .citation-tray .button { min-height: 32px; }
 .citation-tray .button kbd { margin-left: 3px; color: #d5e6dd; border-color: #ffffff30; background: #ffffff10; box-shadow: none; }
+.batch-ai-progress { position: fixed; z-index: 12; left: 50%; bottom: 82px; transform: translateX(-50%); width: min(420px, calc(100vw - 32px)); }
+.batch-ai-progress .ai-progress { margin: 0; background: #fbfcf9f5; box-shadow: 0 8px 35px #263e3024; backdrop-filter: blur(14px); }
 
 .inspector { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--line); background: #fbfcf9; }
 .inspector-header { min-height: 90px; display: flex; align-items: flex-start; gap: 8px; padding: 19px 20px 12px 23px; }
@@ -219,7 +221,7 @@ input[type='checkbox'] { accent-color: var(--green); }
 .ai-progress-text span { color: #84958a; font-size: 8px; line-height: 1.5; }
 .ai-progress-heading > span { flex-shrink: 0; color: #557363; font-variant-numeric: tabular-nums; }
 .ai-progress-track { width: 100%; height: 5px; overflow: hidden; border-radius: 99px; background: #dce5dc; }
-.ai-progress-track > span { display: block; height: 100%; border-radius: inherit; background: #698b72; transition: width 2.4s ease-in-out; }
+.ai-progress-track > span { display: block; height: 100%; border-radius: inherit; background: #698b72; }
 .ai-progress-cancel { flex-shrink: 0; display: flex; align-items: center; gap: 3px; padding: 4px 6px; border-radius: 5px; color: #98624f; background: #f8ece4; font-size: 9px; }
 .ai-progress-cancel:hover { background: #f4dfd4; }
 .generating-overlay .ai-progress { width: calc(100% - 32px); max-width: 320px; background: #fbfcf9f5; box-shadow: 0 4px 20px #2b4a3520; }

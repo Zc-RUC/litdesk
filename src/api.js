@@ -25,6 +25,7 @@ export const api = {
     refresh: (id) => request(`/api/documents/${id}/refresh`, { method: 'POST', body: {} }),
     enrich: (id) => request(`/api/documents/${id}/enrich`, { method: 'POST', body: {} }),
     completeMetadata: (id, { signal, requestId } = {}) => request(`/api/documents/${id}/complete-metadata`, { method: 'POST', body: { requestId }, signal }),
+    completeMetadataBatch: (ids, { signal, requestId } = {}) => request('/api/documents/complete-metadata', { method: 'POST', body: { ids, requestId }, signal }),
     reveal: (id) => request(`/api/documents/${id}/reveal`, { method: 'POST', body: {} }),
     notes: (id) => request(`/api/documents/${id}/notes`),
     summary: (id) => request(`/api/documents/${id}/summary`),
