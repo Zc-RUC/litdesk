@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sparkles, RefreshCw, Settings2, BookPlus, LoaderCircle, ShieldCheck, CircleAlert } from 'lucide-react';
 import { api } from '../api.js';
 import { formatDate } from '../utils.js';
+import AiProgress from './AiProgress.jsx';
 
 const sections = [
   ['researchQuestion', '研究问题'],
@@ -17,25 +18,40 @@ export default function AiPanel({ document, settings, onOpenSettings, onCountsCh
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState('');
+  const controllerRef = useRef(null);
 
   useEffect(() => {
     setSummary(null);
     setChecking(true);
     api.documents.summary(document.id).then(setSummary).catch(() => {}).finally(() => setChecking(false));
+    return () => controllerRef.current?.abort();
   }, [document.id]);
 
+  const cancel = () => {
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setLoading(false);
+    notify('已取消本次 AI 解析', 'warning');
+  };
+
   const generate = async () => {
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
     setLoading(true);
     setError('');
     try {
-      const result = await api.documents.summarize(document.id);
+      const result = await api.documents.summarize(document.id, { signal: controller.signal });
       setSummary(result);
       onCountsChange();
       notify('AI 文献解析已完成并保存');
     } catch (reason) {
-      setError(reason.message);
+      if (reason.name !== 'AbortError') setError(reason.message);
     } finally {
-      setLoading(false);
+      if (controllerRef.current === controller) {
+        setLoading(false);
+        controllerRef.current = null;
+      }
     }
   };
 
@@ -63,6 +79,7 @@ export default function AiPanel({ document, settings, onOpenSettings, onCountsCh
         <div className="analysis-map"><span>研究问题</span><i /><span>研究设计</span><i /><span>数据 · 方法</span><i /><span>结论</span></div>
         <p>LitDesk 会优先读取摘要、研究设计、数据、方法和结论页。长文档将选取相关页面，而不是只分析首页。</p>
         <button className="button primary wide" disabled={loading || !settings?.ai?.configured || document.missing} onClick={generate}>{loading ? <LoaderCircle className="spin" size={16} /> : <Sparkles size={16} />}{loading ? '正在阅读与解析…' : '开始解析这篇文献'}</button>
+        {loading && <AiProgress onCancel={cancel} />}
         <small className="privacy-hint"><ShieldCheck size={13} />仅在点击后向你配置的 API 发送文献文本</small>
       </div>}
       {summary && <div className="summary-content">
@@ -71,7 +88,7 @@ export default function AiPanel({ document, settings, onOpenSettings, onCountsCh
         <div className="summary-meta">由 {summary.model} 生成 · {formatDate(summary.created_at, true)}<br />AI 可能误读，请结合原文页码核对。</div>
         <div className="summary-actions"><button className="button secondary" onClick={saveNote}><BookPlus size={15} />存为笔记</button><button className="button secondary" disabled={loading} onClick={generate}>{loading ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}重新解析</button></div>
       </div>}
-      {loading && summary && <div className="generating-overlay"><LoaderCircle className="spin" size={24} /><p>正在重新阅读文献…</p></div>}
+      {loading && summary && <div className="generating-overlay"><AiProgress onCancel={cancel} /></div>}
     </div>
   );
 }

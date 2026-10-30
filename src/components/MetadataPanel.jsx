@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Save, LoaderCircle, RefreshCw, Sparkles, FolderOpen, FileText, Trash2 } from 'lucide-react';
 import { api } from '../api.js';
 import { authorsToText, textToAuthors, fileSize, formatDate } from '../utils.js';
+import AiProgress from './AiProgress.jsx';
 
 const sourceNames = { pdf: 'PDF 自动识别', crossref: 'Crossref 补全', manual: '手动编校', filename: '文件名', ai: 'AI 补全' };
 const fieldLabels = { title: '题名', authors: '作者', year: '年份', publication: '来源', doi: 'DOI', abstract: '摘要', language: '语言', item_type: '文献类型', pages: '页码', volume: '卷', issue: '期', publisher: '出版方', url: 'URL' };
@@ -13,9 +14,20 @@ export default function MetadataPanel({ document, onUpdated, onOpenReader, onRem
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [working, setWorking] = useState('');
+  const controllerRef = useRef(null);
 
-  useEffect(() => { setForm(makeForm(document)); setDirty(false); }, [document.id, document.updated_at]);
+  useEffect(() => {
+    setForm(makeForm(document));
+    setDirty(false);
+    return () => controllerRef.current?.abort();
+  }, [document.id, document.updated_at]);
   const edit = (field, value) => { setForm((current) => ({ ...current, [field]: value })); setDirty(true); };
+  const cancel = () => {
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setWorking('');
+    notify('已取消本次 AI 补全', 'warning');
+  };
 
   const save = async () => {
     setSaving(true);
@@ -56,9 +68,12 @@ export default function MetadataPanel({ document, onUpdated, onOpenReader, onRem
       return;
     }
     if (dirty && !(await save())) return;
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
     setWorking('ai-complete');
     try {
-      const result = await api.documents.completeMetadata(document.id);
+      const result = await api.documents.completeMetadata(document.id, { signal: controller.signal });
       onUpdated(result.document);
       if (result.changedFields.length) {
         notify(`AI 补全完成：${result.changedFields.map((field) => fieldLabels[field] || field).join('、')}`, 'success', 6000);
@@ -66,9 +81,12 @@ export default function MetadataPanel({ document, onUpdated, onOpenReader, onRem
         notify(result.model ? 'AI 未找到有原文依据的补全信息' : '没有需要补全的空缺字段', 'warning', 6000);
       }
     } catch (error) {
-      notify(`AI 补全失败：${error.message}`, 'warning', 8000);
+      if (error.name !== 'AbortError') notify(`AI 补全失败：${error.message}`, 'warning', 8000);
     } finally {
-      setWorking('');
+      if (controllerRef.current === controller) {
+        setWorking('');
+        controllerRef.current = null;
+      }
     }
   };
 
@@ -84,6 +102,7 @@ export default function MetadataPanel({ document, onUpdated, onOpenReader, onRem
         <strong>{working === 'ai-complete' ? 'AI 补全中…' : '一键 AI 补全'}</strong>
         <small>{working === 'ai-complete' ? '正在读取首页并核对字段' : '仅填空缺，不覆盖已有内容'}</small>
       </button>
+      {working === 'ai-complete' && <AiProgress onCancel={cancel} />}
       {document.extraction_error && <div className="inline-warning">PDF 元数据读取不完整：{document.extraction_error}</div>}
       <div className="metadata-section-heading"><span>书目信息</span><span className="source-badge">{sourceNames[document.metadata_source] || document.metadata_source}</span></div>
       <label className="field"><span>题名</span><textarea rows="3" value={form.title} onChange={(event) => edit('title', event.target.value)} /></label>

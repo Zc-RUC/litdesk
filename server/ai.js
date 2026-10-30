@@ -12,7 +12,7 @@ export const SUMMARY_SECTIONS = [
   ['limitations', '局限与阅读提示'],
 ];
 
-export async function chatCompletion(config, messages, { jsonMode = false, maxTokens = 3000, retryOnLength = true } = {}) {
+export async function chatCompletion(config, messages, { jsonMode = false, maxTokens = 3000, retryOnLength = true, signal } = {}) {
   if (!config.baseUrl || !config.model) throw new Error('请先在设置中填写 API 地址和模型名称');
   const body = {
     model: config.model,
@@ -21,6 +21,8 @@ export async function chatCompletion(config, messages, { jsonMode = false, maxTo
     max_tokens: maxTokens,
   };
   if (jsonMode) body.response_format = { type: 'json_object' };
+  const signals = [AbortSignal.timeout(180000)];
+  if (signal) signals.push(signal);
   const request = async (payload) => fetch(`${config.baseUrl.replace(/\/$/, '')}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -28,7 +30,7 @@ export async function chatCompletion(config, messages, { jsonMode = false, maxTo
       ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
     },
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(180000),
+    signal: AbortSignal.any(signals),
   });
   let response = await request(body);
   if (!response.ok && jsonMode && [400, 404, 422].includes(response.status)) {
@@ -45,7 +47,7 @@ export async function chatCompletion(config, messages, { jsonMode = false, maxTo
   const payload = await response.json();
   const choice = payload.choices?.[0];
   if (retryOnLength && choice?.finish_reason === 'length' && maxTokens < 12000) {
-    return chatCompletion(config, messages, { jsonMode, maxTokens: Math.min(maxTokens * 2, 12000), retryOnLength: false });
+    return chatCompletion(config, messages, { jsonMode, maxTokens: Math.min(maxTokens * 2, 12000), retryOnLength: false, signal });
   }
   const content = choice?.message?.content;
   const text = Array.isArray(content) ? content.map((part) => part.text || '').join('\n') : content;
@@ -95,7 +97,7 @@ export async function testAiConnection() {
   return { success: true, model: config.model };
 }
 
-export async function summarizeDocument(id) {
+export async function summarizeDocument(id, signal) {
   const document = getDocument(id);
   if (!document) throw new Error('文献不存在');
   if (document.missing) throw new Error('原文件当前不可用');
@@ -114,7 +116,7 @@ export async function summarizeDocument(id) {
       role: 'user',
       content: `文献题名：${document.title}\n作者：${document.authors.map((author) => author.literal || `${author.given || ''} ${author.family || ''}`).join(', ')}\n年份：${document.year}\n\n以下是按研究相关度选取、再按页码排序的原文：${source}`,
     },
-  ], { jsonMode: true, maxTokens: 4500 });
+  ], { jsonMode: true, maxTokens: 4500, signal });
   const summary = normalizeSummary(content);
   db.prepare(`INSERT INTO summaries (document_id, content, model, created_at) VALUES (?, ?, ?, ?)
     ON CONFLICT(document_id) DO UPDATE SET content = excluded.content, model = excluded.model, created_at = excluded.created_at`)

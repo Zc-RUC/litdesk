@@ -64,7 +64,7 @@ function empty(document, field) {
   return document[field] === undefined || document[field] === null || String(document[field]).trim() === '';
 }
 
-export async function completeDocumentMetadata(id) {
+export async function completeDocumentMetadata(id, signal) {
   const document = getDocument(id);
   if (!document) throw new Error('文献不存在');
   if (document.missing) throw new Error('原文件当前不可用');
@@ -83,7 +83,7 @@ export async function completeDocumentMetadata(id) {
       role: 'user',
       content: `文件名：${path.basename(document.file_path)}\n已有题名：${document.title}\n已有作者：${JSON.stringify(document.authors)}\n已有年份：${document.year}\n已有 DOI：${document.doi}\n\n只需识别这些目前缺失的字段：${requested.join(', ')}\n\nPDF 首页文本：${source}`,
     },
-  ], { jsonMode: true, maxTokens: 3500 });
+  ], { jsonMode: true, maxTokens: 3500, signal });
   const proposal = normalizeProposal(content);
   const changes = {};
   for (const field of requested) {

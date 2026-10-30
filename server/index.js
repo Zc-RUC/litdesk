@@ -94,7 +94,9 @@ app.delete('/api/documents/:id', (req, res) => {
 app.post('/api/documents/:id/refresh', asyncRoute(async (req, res) => res.json(await library.refreshDocument(req.params.id))));
 app.post('/api/documents/:id/enrich', asyncRoute(async (req, res) => res.json(await library.enrichDocument(req.params.id))));
 app.post('/api/documents/:id/complete-metadata', asyncRoute(async (req, res) => {
-  const result = await completeDocumentMetadata(req.params.id);
+  const controller = new AbortController();
+  req.socket.on('close', () => controller.abort());
+  const result = await completeDocumentMetadata(req.params.id, controller.signal);
   if (result.changedFields.length) library.emit('update', { type: 'document-updated', id: req.params.id });
   res.json(result);
 }));
@@ -185,7 +187,11 @@ app.get('/api/settings', (req, res) => res.json(getPublicSettings()));
 app.put('/api/settings', (req, res) => res.json(saveSettings(req.body)));
 app.post('/api/ai/test', asyncRoute(async (req, res) => res.json(await testAiConnection())));
 app.get('/api/documents/:id/summary', (req, res) => res.json(getSummary(req.params.id)));
-app.post('/api/documents/:id/summarize', asyncRoute(async (req, res) => res.json(await summarizeDocument(req.params.id))));
+app.post('/api/documents/:id/summarize', asyncRoute(async (req, res) => {
+  const controller = new AbortController();
+  req.socket.on('close', () => controller.abort());
+  res.json(await summarizeDocument(req.params.id, controller.signal));
+}));
 app.post('/api/documents/:id/summary/note', (req, res) => {
   requireDocument(req.params.id);
   const summary = getSummary(req.params.id);
