@@ -8,6 +8,7 @@ const defaults = {
     baseUrl: 'https://api.openai.com/v1',
     model: '',
     apiKey: '',
+    temperature: 0.2,
   },
 };
 
@@ -32,6 +33,7 @@ export function getAiConfig() {
     baseUrl: process.env.LITDESK_AI_BASE_URL || settings.ai.baseUrl,
     model: process.env.LITDESK_AI_MODEL || settings.ai.model,
     apiKey: process.env.LITDESK_AI_API_KEY || settings.ai.apiKey,
+    temperature: process.env.LITDESK_AI_TEMPERATURE === undefined ? settings.ai.temperature : Number(process.env.LITDESK_AI_TEMPERATURE),
   };
 }
 
@@ -41,6 +43,7 @@ export function getPublicSettings() {
     ai: {
       baseUrl: config.baseUrl,
       model: config.model,
+      temperature: config.temperature,
       hasApiKey: Boolean(config.apiKey),
       keyPreview: config.apiKey ? `••••••••${config.apiKey.slice(-4)}` : '',
       environmentKey: Boolean(process.env.LITDESK_AI_API_KEY),
@@ -57,6 +60,11 @@ export function saveSettings(input) {
     settings.ai.baseUrl = input.ai.baseUrl.replace(/\/$/, '');
   }
   if (input.ai?.model !== undefined) settings.ai.model = String(input.ai.model).trim();
+  if (input.ai?.temperature !== undefined) {
+    const temperature = Number(input.ai.temperature);
+    if (!Number.isFinite(temperature) || temperature < 0 || temperature > 2) throw new Error('温度必须在 0 到 2 之间');
+    settings.ai.temperature = temperature;
+  }
   if (input.ai?.apiKey) settings.ai.apiKey = String(input.ai.apiKey).trim();
   if (input.ai?.clearApiKey) settings.ai.apiKey = '';
   writeSettings(settings);

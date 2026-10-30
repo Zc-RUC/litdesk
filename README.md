@@ -123,6 +123,7 @@ Available environment variables:
 | `LITDESK_AI_BASE_URL` | OpenAI API URL | OpenAI-compatible endpoint |
 | `LITDESK_AI_MODEL` | empty | Model used for analysis |
 | `LITDESK_AI_API_KEY` | empty | API credential |
+| `LITDESK_AI_TEMPERATURE` | `0.2` | Sampling temperature; use `1` for models that require it |
 
 The server listens on `127.0.0.1`, not a public interface. It is intended for a single local user, not for LAN or internet exposure.
 

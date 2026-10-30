@@ -17,7 +17,7 @@ export async function chatCompletion(config, messages, { jsonMode = false, maxTo
   const body = {
     model: config.model,
     messages,
-    temperature: 0.2,
+    temperature: config.temperature ?? 0.2,
     max_tokens: maxTokens,
   };
   if (jsonMode) body.response_format = { type: 'json_object' };
@@ -87,7 +87,7 @@ function normalizeSummary(content) {
 
 export async function testAiConnection() {
   const config = getAiConfig();
-  await chatCompletion(config, [{ role: 'user', content: 'Reply with OK only.' }], { maxTokens: 8 });
+  await chatCompletion(config, [{ role: 'user', content: 'Reply with OK only.' }], { maxTokens: 64 });
   return { success: true, model: config.model };
 }
 

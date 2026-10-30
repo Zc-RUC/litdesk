@@ -123,6 +123,7 @@ npm start
 | `LITDESK_AI_BASE_URL` | OpenAI API 地址 | OpenAI 兼容接口 |
 | `LITDESK_AI_MODEL` | 空 | 用于解析的模型 |
 | `LITDESK_AI_API_KEY` | 空 | API 凭据 |
+| `LITDESK_AI_TEMPERATURE` | `0.2` | 采样温度；要求固定温度的模型可设为 `1` |
 
 服务仅监听 `127.0.0.1`，不监听公网接口，适合单用户本地使用，不应直接暴露到局域网或互联网。
 
