@@ -102,7 +102,7 @@ export async function completeDocumentMetadata(id, signal, onProgress) {
     },
   ], {
     jsonMode: true,
-    maxTokens: 2000,
+    maxTokens: 7000,
     signal,
     onRequest: ({ attempt, reason }) => onProgress?.({
       stage: 'generating',

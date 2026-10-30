@@ -131,7 +131,7 @@ export async function summarizeDocument(id, signal, onProgress) {
     },
   ], {
     jsonMode: true,
-    maxTokens: 3000,
+    maxTokens: 9000,
     signal,
     onRequest: ({ attempt, reason }) => onProgress?.({
       stage: 'generating',
