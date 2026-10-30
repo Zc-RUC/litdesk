@@ -211,10 +211,16 @@ input[type='checkbox'] { accent-color: var(--green); }
 .summary-meta { padding: 12px 0; border-top: 1px solid var(--line); color: #9aa39d; font-size: 8px; line-height: 1.7; }
 .summary-actions { display: flex; gap: 8px; }
 .summary-actions .button { flex: 1; }
-.ai-progress { display: flex; align-items: center; gap: 8px; padding: 10px; margin: 10px 0 12px; border: 1px solid #dce5dc; border-radius: 8px; color: #557363; background: #f0f4ed; }
-.ai-progress-text { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.ai-progress { display: flex; align-items: flex-start; gap: 8px; padding: 11px; margin: 10px 0 12px; border: 1px solid #dce5dc; border-radius: 8px; color: #557363; background: #f0f4ed; }
+.ai-progress > .spin { flex-shrink: 0; margin-top: 2px; }
+.ai-progress-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.ai-progress-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .ai-progress-text strong { font-size: 10px; }
 .ai-progress-text span { color: #84958a; font-size: 8px; line-height: 1.5; }
+.ai-progress-heading > span { flex-shrink: 0; color: #557363; font-variant-numeric: tabular-nums; }
+.ai-progress-track { width: 100%; height: 5px; overflow: hidden; border-radius: 99px; background: #dce5dc; }
+.ai-progress-track > span { display: block; height: 100%; border-radius: inherit; background: #698b72; transition: width 350ms ease; }
+.ai-progress-cancel { flex-shrink: 0; display: flex; align-items: center; gap: 3px; padding: 4px 6px; border-radius: 5px; color: #98624f; background: #f8ece4; font-size: 9px; }
 .ai-progress-cancel { display: flex; align-items: center; gap: 3px; padding: 4px 6px; border-radius: 5px; color: #98624f; background: #f8ece4; font-size: 9px; }
 .ai-progress-cancel:hover { background: #f4dfd4; }
 .generating-overlay .ai-progress { width: calc(100% - 32px); max-width: 320px; background: #fbfcf9f5; box-shadow: 0 4px 20px #2b4a3520; }

@@ -27,6 +27,7 @@ export default function App() {
   const [quoteRequest, setQuoteRequest] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [liveStatus, setLiveStatus] = useState('online');
+  const [aiProgress, setAiProgress] = useState({});
   const initialSelection = useRef(false);
   const searchRef = useRef(null);
 
@@ -61,6 +62,10 @@ export default function App() {
     events.onopen = () => setLiveStatus('online');
     events.onmessage = (message) => {
       const event = JSON.parse(message.data);
+      if (event.type === 'ai-progress') {
+        setAiProgress((current) => ({ ...current, [`${event.documentId}:${event.operation}`]: event }));
+        return;
+      }
       if (event.type === 'sync-start') setLiveStatus('syncing');
       if (event.type === 'sync-complete') setLiveStatus('online');
       if (event.type === 'sync-error') {
@@ -201,7 +206,7 @@ export default function App() {
           {selectedIds.length > 0 && view !== 'notes' && <div className="citation-tray"><button className="selection-count" onClick={() => setSelectedIds([])}><span>{selectedIds.length}</span>已选<X size={12} /></button><select value={styleId} onChange={(event) => changeStyle(event.target.value)}>{data.styles.map((style) => <option key={style.id} value={style.id}>{style.shortName}</option>)}</select><button className="button primary" onClick={() => setModal('citation')}><Quote size={15} />引用文献<kbd>⌘⇧C</kbd></button></div>}
         </main>
 
-        <Inspector document={activeDocument} tab={tab} onTabChange={setTab} onClose={() => setActiveId(null)} onUpdated={updateDocument} onOpenReader={() => setModal('reader')} onRemove={removeDocument} settings={data.settings} onOpenSettings={() => setModal('settings')} quoteRequest={quoteRequest} onQuoteConsumed={() => setQuoteRequest(null)} onCountsChange={() => refresh().catch(() => {})} notify={notify} />
+        <Inspector document={activeDocument} tab={tab} onTabChange={setTab} onClose={() => setActiveId(null)} onUpdated={updateDocument} onOpenReader={() => setModal('reader')} onRemove={removeDocument} settings={data.settings} onOpenSettings={() => setModal('settings')} quoteRequest={quoteRequest} onQuoteConsumed={() => setQuoteRequest(null)} onCountsChange={() => refresh().catch(() => {})} notify={notify} aiProgress={aiProgress} />
       </div>
 
       {modal === 'reader' && activeDocument && <PdfReader document={activeDocument} onClose={() => setModal(null)} onQuote={({ quote, page }) => { setQuoteRequest({ quote, page, timestamp: Date.now() }); setTab('notes'); }} />}

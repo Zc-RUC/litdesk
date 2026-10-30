@@ -96,7 +96,9 @@ app.post('/api/documents/:id/enrich', asyncRoute(async (req, res) => res.json(aw
 app.post('/api/documents/:id/complete-metadata', asyncRoute(async (req, res) => {
   const controller = new AbortController();
   req.socket.on('close', () => controller.abort());
-  const result = await completeDocumentMetadata(req.params.id, controller.signal);
+  const requestId = String(req.body.requestId || '').slice(0, 100);
+  const onProgress = (progress) => library.emit('update', { ...progress, type: 'ai-progress', operation: 'complete-metadata', documentId: req.params.id, requestId });
+  const result = await completeDocumentMetadata(req.params.id, controller.signal, onProgress);
   if (result.changedFields.length) library.emit('update', { type: 'document-updated', id: req.params.id });
   res.json(result);
 }));
@@ -190,7 +192,9 @@ app.get('/api/documents/:id/summary', (req, res) => res.json(getSummary(req.para
 app.post('/api/documents/:id/summarize', asyncRoute(async (req, res) => {
   const controller = new AbortController();
   req.socket.on('close', () => controller.abort());
-  res.json(await summarizeDocument(req.params.id, controller.signal));
+  const requestId = String(req.body.requestId || '').slice(0, 100);
+  const onProgress = (progress) => library.emit('update', { ...progress, type: 'ai-progress', operation: 'summarize', documentId: req.params.id, requestId });
+  res.json(await summarizeDocument(req.params.id, controller.signal, onProgress));
 }));
 app.post('/api/documents/:id/summary/note', (req, res) => {
   requireDocument(req.params.id);

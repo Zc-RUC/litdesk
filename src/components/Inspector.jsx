@@ -4,7 +4,7 @@ import AiPanel from './AiPanel.jsx';
 import NotePanel from './NotePanel.jsx';
 import { classNames } from '../utils.js';
 
-export default function Inspector({ document, tab, onTabChange, onClose, onUpdated, onOpenReader, onRemove, settings, onOpenSettings, quoteRequest, onQuoteConsumed, onCountsChange, notify }) {
+export default function Inspector({ document, tab, onTabChange, onClose, onUpdated, onOpenReader, onRemove, settings, onOpenSettings, quoteRequest, onQuoteConsumed, onCountsChange, notify, aiProgress }) {
   if (!document) return <aside className="inspector empty-inspector"><div><BookOpen size={34} /><h3>选择一篇文献</h3><p>查看书目信息、AI 解析与阅读笔记</p></div></aside>;
   return (
     <aside className="inspector">
@@ -18,8 +18,8 @@ export default function Inspector({ document, tab, onTabChange, onClose, onUpdat
         <button className={classNames(tab === 'notes' && 'active')} onClick={() => onTabChange('notes')}><NotebookPen size={15} />笔记</button>
       </div>
       <div className="inspector-content">
-        {tab === 'details' && <MetadataPanel document={document} onUpdated={onUpdated} onOpenReader={onOpenReader} onRemove={onRemove} settings={settings} onOpenSettings={onOpenSettings} notify={notify} />}
-        {tab === 'ai' && <AiPanel document={document} settings={settings} onOpenSettings={onOpenSettings} onCountsChange={onCountsChange} notify={notify} />}
+        {tab === 'details' && <MetadataPanel document={document} onUpdated={onUpdated} onOpenReader={onOpenReader} onRemove={onRemove} settings={settings} onOpenSettings={onOpenSettings} notify={notify} progress={aiProgress[`${document.id}:complete-metadata`]} />}
+        {tab === 'ai' && <AiPanel document={document} settings={settings} onOpenSettings={onOpenSettings} onCountsChange={onCountsChange} notify={notify} progress={aiProgress[`${document.id}:summarize`]} />}
         {tab === 'notes' && <NotePanel document={document} quoteRequest={quoteRequest} onQuoteConsumed={onQuoteConsumed} onCountsChange={onCountsChange} notify={notify} />}
       </div>
     </aside>

@@ -12,7 +12,7 @@ export const SUMMARY_SECTIONS = [
   ['limitations', '局限与阅读提示'],
 ];
 
-export async function chatCompletion(config, messages, { jsonMode = false, maxTokens = 3000, retryOnLength = true, signal } = {}) {
+export async function chatCompletion(config, messages, { jsonMode = false, maxTokens = 3000, retryOnLength = true, signal, onRequest } = {}) {
   if (!config.baseUrl || !config.model) throw new Error('请先在设置中填写 API 地址和模型名称');
   const body = {
     model: config.model,
@@ -23,20 +23,25 @@ export async function chatCompletion(config, messages, { jsonMode = false, maxTo
   if (jsonMode) body.response_format = { type: 'json_object' };
   const signals = [AbortSignal.timeout(180000)];
   if (signal) signals.push(signal);
-  const request = async (payload) => fetch(`${config.baseUrl.replace(/\/$/, '')}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-    },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.any(signals),
-  });
+  let attempt = 0;
+  const request = async (payload, reason = 'initial') => {
+    attempt += 1;
+    onRequest?.({ attempt, maxTokens: payload.max_tokens, reason });
+    return fetch(`${config.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.any(signals),
+    });
+  };
   let response = await request(body);
   if (!response.ok && jsonMode && [400, 404, 422].includes(response.status)) {
     await response.body?.cancel();
     delete body.response_format;
-    response = await request(body);
+    response = await request(body, 'compatibility');
   }
   if (!response.ok) {
     const raw = await response.text();
@@ -47,7 +52,13 @@ export async function chatCompletion(config, messages, { jsonMode = false, maxTo
   const payload = await response.json();
   const choice = payload.choices?.[0];
   if (retryOnLength && choice?.finish_reason === 'length' && maxTokens < 12000) {
-    return chatCompletion(config, messages, { jsonMode, maxTokens: Math.min(maxTokens * 2, 12000), retryOnLength: false, signal });
+    return chatCompletion(config, messages, {
+      jsonMode,
+      maxTokens: Math.min(maxTokens * 2, 12000),
+      retryOnLength: false,
+      signal,
+      onRequest: (info) => onRequest?.({ ...info, attempt: info.attempt + 1, reason: info.reason === 'initial' ? 'length' : info.reason }),
+    });
   }
   const content = choice?.message?.content;
   const text = Array.isArray(content) ? content.map((part) => part.text || '').join('\n') : content;
@@ -64,12 +75,12 @@ function selectExcerpt(pages) {
   const selected = [];
   let characters = 0;
   for (const page of ranked) {
-    if (selected.length >= 18) break;
-    const content = page.content.slice(0, 14000);
-    if (characters + content.length > 100000 && selected.length) continue;
+    if (selected.length >= 10) break;
+    const content = page.content.slice(0, 4800);
+    if (characters + content.length > 32000 && selected.length) continue;
     selected.push({ page: page.page, content });
     characters += content.length;
-    if (characters >= 100000) break;
+    if (characters >= 32000) break;
   }
   return selected.sort((a, b) => a.page - b.page);
 }
@@ -97,15 +108,17 @@ export async function testAiConnection() {
   return { success: true, model: config.model };
 }
 
-export async function summarizeDocument(id, signal) {
+export async function summarizeDocument(id, signal, onProgress) {
   const document = getDocument(id);
   if (!document) throw new Error('文献不存在');
   if (document.missing) throw new Error('原文件当前不可用');
+  onProgress?.({ stage: 'reading', percent: 10, message: '正在读取 PDF 文本' });
   const pages = await getDocumentPages(document);
   const totalCharacters = pages.reduce((sum, page) => sum + page.content.replace(/\s/g, '').length, 0);
   if (totalCharacters < 400) throw new Error('PDF 中没有足够的可提取文本。扫描版请先进行 OCR，再使用 AI 解析');
   const excerpt = selectExcerpt(pages);
   const source = excerpt.map((page) => `\n\n===== PDF 第 ${page.page} 页 =====\n${page.content}`).join('');
+  onProgress?.({ stage: 'preparing', percent: 30, message: `已选取 ${excerpt.length} 页 · ${source.length.toLocaleString('zh-CN')} 字原文` });
   const config = getAiConfig();
   const content = await chatCompletion(config, [
     {
@@ -116,11 +129,23 @@ export async function summarizeDocument(id, signal) {
       role: 'user',
       content: `文献题名：${document.title}\n作者：${document.authors.map((author) => author.literal || `${author.given || ''} ${author.family || ''}`).join(', ')}\n年份：${document.year}\n\n以下是按研究相关度选取、再按页码排序的原文：${source}`,
     },
-  ], { jsonMode: true, maxTokens: 4500, signal });
+  ], {
+    jsonMode: true,
+    maxTokens: 3000,
+    signal,
+    onRequest: ({ attempt, reason }) => onProgress?.({
+      stage: 'generating',
+      percent: 55,
+      message: attempt === 1 ? '模型正在生成文献解析' : reason === 'length' ? '内容被截断，正在提高额度重试' : '正在使用兼容模式重试',
+      attempt,
+    }),
+  });
+  onProgress?.({ stage: 'saving', percent: 90, message: '模型已返回，正在整理并保存解析' });
   const summary = normalizeSummary(content);
   db.prepare(`INSERT INTO summaries (document_id, content, model, created_at) VALUES (?, ?, ?, ?)
     ON CONFLICT(document_id) DO UPDATE SET content = excluded.content, model = excluded.model, created_at = excluded.created_at`)
     .run(id, JSON.stringify(summary), config.model, now());
+  onProgress?.({ stage: 'complete', percent: 100, message: '文献解析已保存' });
   return getSummary(id);
 }
 

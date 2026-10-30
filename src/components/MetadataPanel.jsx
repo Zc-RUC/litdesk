@@ -9,16 +9,18 @@ const fieldLabels = { title: '题名', authors: '作者', year: '年份', public
 const fields = ['title', 'year', 'publication', 'doi', 'abstract', 'language', 'item_type', 'pages', 'volume', 'issue', 'publisher', 'url'];
 const makeForm = (document) => ({ ...Object.fromEntries(fields.map((field) => [field, document[field] || ''])), authors: authorsToText(document.authors), tags: document.tags.join(', ') });
 
-export default function MetadataPanel({ document, onUpdated, onOpenReader, onRemove, settings, onOpenSettings, notify }) {
+export default function MetadataPanel({ document, onUpdated, onOpenReader, onRemove, settings, onOpenSettings, notify, progress }) {
   const [form, setForm] = useState(makeForm(document));
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [working, setWorking] = useState('');
+  const [requestId, setRequestId] = useState('');
   const controllerRef = useRef(null);
 
   useEffect(() => {
     setForm(makeForm(document));
     setDirty(false);
+    setRequestId('');
     return () => controllerRef.current?.abort();
   }, [document.id, document.updated_at]);
   const edit = (field, value) => { setForm((current) => ({ ...current, [field]: value })); setDirty(true); };
@@ -70,10 +72,12 @@ export default function MetadataPanel({ document, onUpdated, onOpenReader, onRem
     if (dirty && !(await save())) return;
     controllerRef.current?.abort();
     const controller = new AbortController();
+    const id = crypto.randomUUID();
     controllerRef.current = controller;
+    setRequestId(id);
     setWorking('ai-complete');
     try {
-      const result = await api.documents.completeMetadata(document.id, { signal: controller.signal });
+      const result = await api.documents.completeMetadata(document.id, { signal: controller.signal, requestId: id });
       onUpdated(result.document);
       if (result.changedFields.length) {
         notify(`AI 补全完成：${result.changedFields.map((field) => fieldLabels[field] || field).join('、')}`, 'success', 6000);
@@ -90,6 +94,8 @@ export default function MetadataPanel({ document, onUpdated, onOpenReader, onRem
     }
   };
 
+  const currentProgress = progress?.requestId === requestId ? progress : null;
+
   return (
     <div className="metadata-panel">
       <button className="reader-card" onClick={onOpenReader} disabled={document.missing}>
@@ -102,7 +108,7 @@ export default function MetadataPanel({ document, onUpdated, onOpenReader, onRem
         <strong>{working === 'ai-complete' ? 'AI 补全中…' : '一键 AI 补全'}</strong>
         <small>{working === 'ai-complete' ? '正在读取首页并核对字段' : '仅填空缺，不覆盖已有内容'}</small>
       </button>
-      {working === 'ai-complete' && <AiProgress onCancel={cancel} />}
+      {working === 'ai-complete' && <AiProgress onCancel={cancel} progress={currentProgress} />}
       {document.extraction_error && <div className="inline-warning">PDF 元数据读取不完整：{document.extraction_error}</div>}
       <div className="metadata-section-heading"><span>书目信息</span><span className="source-badge">{sourceNames[document.metadata_source] || document.metadata_source}</span></div>
       <label className="field"><span>题名</span><textarea rows="3" value={form.title} onChange={(event) => edit('title', event.target.value)} /></label>

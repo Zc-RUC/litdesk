@@ -24,11 +24,11 @@ export const api = {
     remove: (id) => request(`/api/documents/${id}`, { method: 'DELETE' }),
     refresh: (id) => request(`/api/documents/${id}/refresh`, { method: 'POST', body: {} }),
     enrich: (id) => request(`/api/documents/${id}/enrich`, { method: 'POST', body: {} }),
-    completeMetadata: (id, options = {}) => request(`/api/documents/${id}/complete-metadata`, { method: 'POST', body: {}, ...options }),
+    completeMetadata: (id, { signal, requestId } = {}) => request(`/api/documents/${id}/complete-metadata`, { method: 'POST', body: { requestId }, signal }),
     reveal: (id) => request(`/api/documents/${id}/reveal`, { method: 'POST', body: {} }),
     notes: (id) => request(`/api/documents/${id}/notes`),
     summary: (id) => request(`/api/documents/${id}/summary`),
-    summarize: (id, options = {}) => request(`/api/documents/${id}/summarize`, { method: 'POST', body: {}, ...options }),
+    summarize: (id, { signal, requestId } = {}) => request(`/api/documents/${id}/summarize`, { method: 'POST', body: { requestId }, signal }),
     summaryToNote: (id) => request(`/api/documents/${id}/summary/note`, { method: 'POST', body: {} }),
   },
   notes: {
