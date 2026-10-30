@@ -12,7 +12,7 @@ export const SUMMARY_SECTIONS = [
   ['limitations', '局限与阅读提示'],
 ];
 
-export async function chatCompletion(config, messages, { jsonMode = false, maxTokens = 3000 } = {}) {
+export async function chatCompletion(config, messages, { jsonMode = false, maxTokens = 3000, retryOnLength = true } = {}) {
   if (!config.baseUrl || !config.model) throw new Error('请先在设置中填写 API 地址和模型名称');
   const body = {
     model: config.model,
@@ -43,9 +43,13 @@ export async function chatCompletion(config, messages, { jsonMode = false, maxTo
     throw new Error(`AI 服务返回 ${response.status}：${String(detail).slice(0, 500)}`);
   }
   const payload = await response.json();
-  const content = payload.choices?.[0]?.message?.content;
+  const choice = payload.choices?.[0];
+  if (retryOnLength && choice?.finish_reason === 'length' && maxTokens < 12000) {
+    return chatCompletion(config, messages, { jsonMode, maxTokens: Math.min(maxTokens * 2, 12000), retryOnLength: false });
+  }
+  const content = choice?.message?.content;
   const text = Array.isArray(content) ? content.map((part) => part.text || '').join('\n') : content;
-  if (!text) throw new Error('AI 服务没有返回可读取的内容');
+  if (!text) throw new Error(`AI 服务没有返回可读取的内容（${choice?.finish_reason || '未知原因'}）`);
   return text;
 }
 

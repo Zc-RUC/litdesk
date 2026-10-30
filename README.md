@@ -73,7 +73,7 @@ The Vite development page runs at `http://localhost:5173` and proxies API calls 
 
 Open **Settings** and enter an OpenAI-compatible Base URL, model name, and API key. Presets are provided for OpenAI, Kimi, DeepSeek, and a local model endpoint.
 
-The configured service must support the `/chat/completions` endpoint. LitDesk only sends paper text after you explicitly test the connection, request an analysis, or use AI completion. Long documents use relevant pages, including abstract, methods, data, results, and conclusion sections, rather than only the first page. Scanned PDFs need OCR before AI analysis.
+The configured service must support the `/chat/completions` endpoint. LitDesk only sends paper text after you explicitly test the connection, request an analysis, or use AI completion. Long documents use relevant pages, including abstract, methods, data, results, and conclusion sections, rather than only the first page. If a model stops at its token limit, LitDesk automatically retries once with a larger budget instead of parsing a truncated response. Scanned PDFs need OCR before AI analysis.
 
 ### One-click AI metadata completion
 
