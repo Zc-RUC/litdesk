@@ -22,6 +22,27 @@ LitDesk is a Zotero-inspired desktop-style web app for managing a local PDF libr
 
 Try the [hosted LitDesk demo](https://zc-ruc.github.io/-/litdesk/). It uses built-in sample documents and a browser mock API, so it does not read your local files, call a real AI provider, or automate Word/WPS. Changes reset when the page reloads. The full watched-folder, local database, real AI, and desktop integrations require the local deployment below.
 
+## macOS desktop installer (Apple Silicon)
+
+You can build a desktop app that does not require a separate Node.js installation. The packaging script currently supports Apple Silicon macOS (arm64):
+
+```bash
+npm run dist:mac
+```
+
+Artifacts:
+
+- `dist-desktop/mac-arm64/LitDesk.app` — the runnable desktop application.
+- `dist-desktop/LitDesk-0.1.0-arm64.dmg` — the installer image; open it and drag LitDesk to Applications.
+
+The package includes Electron and the local Node service, so users do not need to run `npm start`. The first build downloads the Electron runtime. Use `npm run desktop` for desktop development and `npm run icon:mac` to regenerate the icons.
+
+The current build uses an **ad-hoc local signature**, not an Apple Developer signature or notarization. You may need to right-click the app and choose **Open** on first launch. Configure your own Apple Developer certificate for formal distribution.
+
+Desktop data is stored separately in `~/Library/Application Support/LitDesk/data`; it does not automatically read or migrate browser-version data on first launch. To migrate, stop the browser service and quit the desktop app, then back up and copy the contents of the original `data/` into this directory. Do not write inside the `.app` bundle. PDFs remain in their original folders; select the folder again if its path has changed.
+
+WPS/Word insertion still requires the corresponding applications and Automation/Accessibility permission for LitDesk. Word insertion has not been verified on a live document. Build artifacts stay in `dist-desktop/` and are not committed to Git. Packages never include your PDFs, library database, or API key.
+
 ## Local deployment
 
 ### Requirements

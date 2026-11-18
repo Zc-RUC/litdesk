@@ -22,6 +22,27 @@ LitDesk 仿照 Zotero 的核心工作流，用于管理本地 PDF 文库、阅�
 
 可访问 [LitDesk 在线 Demo](https://zc-ruc.github.io/-/litdesk/)。演示使用内置示例文献和浏览器模拟接口，不读取本地文件、不调用真实 AI，也不控制 Word/WPS；刷新页面后恢复示例状态。完整的文件夹监听、本地数据库、真实 AI 和桌面集成仍需按下方说明本地部署。
 
+## macOS 桌面安装包（Apple Silicon）
+
+项目可以构建无需安装 Node.js 的桌面应用。当前打包脚本仅支持 Apple Silicon macOS (arm64)：
+
+```bash
+npm run dist:mac
+```
+
+生成文件：
+
+- `dist-desktop/mac-arm64/LitDesk.app`：可直接运行的桌面应用。
+- `dist-desktop/LitDesk-0.1.0-arm64.dmg`：安装镜像，打开后将 LitDesk 拖入 Applications。
+
+安装包包含 Electron 和本地 Node 服务，用户不需要执行 `npm start`。首次构建会下载 Electron 运行环境。`npm run desktop` 用于桌面开发运行，`npm run icon:mac` 可重新生成图标。
+
+当前使用 **ad-hoc 本地签名**，没有经过 Apple 正式签名和公证。首次打开时可能需要在 Finder 中右键选择「打开」；若要正式分发，请配置自己的 Apple 开发者证书。
+
+桌面数据独立保存在 `~/Library/Application Support/LitDesk/data`，首次启动不会自动读取或迁移浏览器版数据。需要迁移时，请先停止浏览器版服务并退出桌面应用，备份后将原 `data/` 中的内容复制到该目录，不要写入 `.app` 内部。PDF 始终保留在原文件夹；如果路径发生变化，请在应用中重新选择。
+
+WPS/Word 插入仍需安装对应应用，并允许 LitDesk 的自动化/辅助功能权限。Word 插入目前尚未实机验证。打包产物位于 `dist-desktop/`，不会提交到 Git，也不会包含你的 PDF、文库数据库或 API Key。
+
 ## 本地部署
 
 ### 环境要求
