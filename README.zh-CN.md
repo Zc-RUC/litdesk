@@ -4,7 +4,7 @@
 
 LitDesk 仿照 Zotero 的核心工作流，用于管理本地 PDF 文库、阅读与笔记、生成 CSL 引用、向 WPS/Word 插入带浅灰底纹的域格式引文，并可选择接入 OpenAI 兼容 API 总结文献。
 
-[English](README.md) · [本地部署](#本地部署) · [域格式引用](#域格式引用)
+[English](README.md) · [下载 macOS 安装包](https://github.com/Zc-RUC/litdesk/releases/tag/v0.1.0) · [安装与使用教程](#安装与使用教程) · [本地部署](#本地部署) · [域格式引用](#域格式引用)
 
 ![LitDesk 文献工作台](docs/litdesk-dashboard.png)
 
@@ -22,26 +22,72 @@ LitDesk 仿照 Zotero 的核心工作流，用于管理本地 PDF 文库、阅�
 
 可访问 [LitDesk 在线 Demo](https://zc-ruc.github.io/-/litdesk/)。演示使用内置示例文献和浏览器模拟接口，不读取本地文件、不调用真实 AI，也不控制 Word/WPS；刷新页面后恢复示例状态。完整的文件夹监听、本地数据库、真实 AI 和桌面集成仍需按下方说明本地部署。
 
-## macOS 桌面安装包（Apple Silicon）
+## 安装与使用教程
 
-项目可以构建无需安装 Node.js 的桌面应用。当前打包脚本仅支持 Apple Silicon macOS (arm64)：
+### 1. 下载并安装 macOS 版
+
+当前安装包仅支持 **Apple Silicon Mac（M1、M2、M3、M4 等，arm64）**，暂不支持 Intel Mac 或 Windows。无需安装 Node.js，也不需要使用命令行。
+
+1. 打开 [LitDesk v0.1.0 下载页](https://github.com/Zc-RUC/litdesk/releases/tag/v0.1.0)，下载 **LitDesk-0.1.0-arm64.dmg**。
+2. 双击 DMG 文件，在打开的窗口中将 **LitDesk 拖入 Applications（应用程序）**。
+3. 从「应用程序」或 Launchpad 打开 LitDesk。首次使用 ad-hoc 本地签名的版本时，可能需要在 Finder 中**右键 LitDesk → 打开**，再确认一次。该版本没有经过 Apple 正式签名和公证。
+4. 如果窗口没有出现，请点击程序坞中的 LitDesk 图标。退出时使用菜单 **LitDesk → Quit LitDesk** 或 `Cmd+Q`，本地服务也会随之关闭。
+
+Release 中还提供 `.sha256` 文件。需要核对下载完整性时，可运行 `shasum -a 256 ~/Downloads/LitDesk-0.1.0-arm64.dmg`，并与该文件中的值比较。
+
+### 2. 导入文献与日常使用
+
+1. 点击「管理文件夹 → 选择系统文件夹」，选择存放 PDF 的文件夹；也可以输入文件夹的绝对路径。
+2. 已有 PDF 会自动扫描进入文库。保持应用运行，新增、修改、重命名或移除文件也会自动同步。原 PDF 不会被移动或改写。
+3. 点击文献可编辑书目、打开 PDF 阅读器、添加标签或记笔记；选中 PDF 原文可生成带页码的摘录。
+4. 单篇补全可点击「详情 → 一键 AI 补全」；多篇可先勾选或使用「全选」，再点击底部「批量 AI 补全」。批量任务逐篇执行，只填补空缺，不覆盖已有字段，可中途取消。
+5. 使用 `Cmd+K` 搜索，选择文献后点击「引用文献」或按 `Cmd+Shift+C` 打开引用中心。
+
+### 3. 可选：配置 AI
+
+不使用 AI 时，文献管理、阅读、笔记和引用功能仍可正常使用。
+
+打开「设置」，填写 OpenAI 兼容服务的 **Base URL、模型名称和 API Key**，然后点击「保存并测试连接」。只有主动点击测试、解析或补全时，才会向所配置服务发送相应文本。
+
+- **云端 API**：需要服务商提供兼容 `/chat/completions` 的接口、可用模型和有效凭据，可能产生 token 费用。
+- **本地免费模型**：安装 Ollama 并下载模型后，可使用 `http://127.0.0.1:11434/v1`、模型名称（例如 `qwen3:8b`），API Key 留空。需要下载模型并占用本机内存，速度和效果取决于电脑配置。
+- **扫描版 PDF**：需要先做 OCR，否则无法可靠提取正文进行 AI 解析。
+
+### 4. 在 WPS / Word 中引用
+
+1. 安装 WPS Office 和/或 Microsoft Word，打开目标文档并放置光标。
+2. 在 LitDesk 中选择文献，打开引用中心，选择 CSL 样式以及「文内引用」或「参考文献表」。
+3. 点击「插入到 WPS」或「插入到 Word」，按系统提示允许 LitDesk 的自动化/辅助功能权限。
+4. 点击或选中引文时可看到浅灰色域底纹，具体取决于应用的「域底纹」设置。
+
+macOS 版 WPS 的域插入已实机验证；Word 插入尚未实机验证。当前不支持 Zotero 式全文引文自动刷新。
+
+### 5. 数据备份、迁移与卸载
+
+- 桌面数据保存在 `~/Library/Application Support/LitDesk/data`，包括 SQLite 文库、笔记、AI 解析和本地设置。
+- 桌面版首次启动不会自动迁移浏览器版数据。需要迁移时，请停止浏览器版服务并退出桌面应用，备份后将原 `data/` 中的内容复制到上述目录，不要写入 `.app` 内部。
+- PDF 始终保留在原文件夹。如果文献路径改变，请在应用中重新选择文件夹。
+- 更新时先退出应用，再用新 DMG 中的 LitDesk 替换「应用程序」里的旧版本，数据目录会保留。
+- 卸载时删除「应用程序」里的 LitDesk 即可。个人数据不会随应用自动删除；只有在确认不再需要文库、笔记和设置后，才自行备份并删除上述数据目录。
+
+### 常见问题
+
+- **安装后文库为空**：先选择 PDF 文件夹。桌面版与原浏览器版使用不同的数据目录，旧数据不会自动出现。
+- **AI 不工作**：检查 Base URL、模型名称、API Key、网络和服务余额；本地模型需确认 Ollama 正在运行且模型已下载。
+- **提示无法识别文本**：扫描版请先 OCR。
+- **无法插入引用**：检查 WPS/Word 是否在前台，以及 LitDesk 是否获得自动化/辅助功能权限。
+
+## 自行构建 macOS 安装包（开发者）
+
+在 Apple Silicon macOS (arm64) 上运行：
 
 ```bash
 npm run dist:mac
 ```
 
-生成文件：
+生成 `dist-desktop/mac-arm64/LitDesk.app` 和 `dist-desktop/LitDesk-0.1.0-arm64.dmg`。安装包包含 Electron 和本地 Node 服务，用户不需要执行 `npm start`。首次构建会下载 Electron 运行环境。`npm run desktop` 用于桌面开发运行，`npm run icon:mac` 可重新生成图标。
 
-- `dist-desktop/mac-arm64/LitDesk.app`：可直接运行的桌面应用。
-- `dist-desktop/LitDesk-0.1.0-arm64.dmg`：安装镜像，打开后将 LitDesk 拖入 Applications。
-
-安装包包含 Electron 和本地 Node 服务，用户不需要执行 `npm start`。首次构建会下载 Electron 运行环境。`npm run desktop` 用于桌面开发运行，`npm run icon:mac` 可重新生成图标。
-
-当前使用 **ad-hoc 本地签名**，没有经过 Apple 正式签名和公证。首次打开时可能需要在 Finder 中右键选择「打开」；若要正式分发，请配置自己的 Apple 开发者证书。
-
-桌面数据独立保存在 `~/Library/Application Support/LitDesk/data`，首次启动不会自动读取或迁移浏览器版数据。需要迁移时，请先停止浏览器版服务并退出桌面应用，备份后将原 `data/` 中的内容复制到该目录，不要写入 `.app` 内部。PDF 始终保留在原文件夹；如果路径发生变化，请在应用中重新选择。
-
-WPS/Word 插入仍需安装对应应用，并允许 LitDesk 的自动化/辅助功能权限。Word 插入目前尚未实机验证。打包产物位于 `dist-desktop/`，不会提交到 Git，也不会包含你的 PDF、文库数据库或 API Key。
+打包产物位于 `dist-desktop/`，不会提交到 Git，也不会包含你的 PDF、文库数据库或 API Key。正式分发需要自行配置 Apple 开发者签名和公证。
 
 ## 本地部署
 

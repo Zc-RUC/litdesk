@@ -4,7 +4,7 @@
 
 LitDesk is a Zotero-inspired desktop-style web app for managing a local PDF library, reading and taking notes, generating CSL citations, inserting citation fields into WPS/Word, and optionally summarizing papers with an OpenAI-compatible API.
 
-[简体中文](README.zh-CN.md) · [Local deployment](#local-deployment) · [Citation fields](#citation-fields)
+[简体中文](README.zh-CN.md) · [Download for macOS](https://github.com/Zc-RUC/litdesk/releases/tag/v0.1.0) · [Install and use](#install-and-use) · [Local deployment](#local-deployment) · [Citation fields](#citation-fields)
 
 ![LitDesk library](docs/litdesk-dashboard.png)
 
@@ -22,26 +22,72 @@ LitDesk is a Zotero-inspired desktop-style web app for managing a local PDF libr
 
 Try the [hosted LitDesk demo](https://zc-ruc.github.io/-/litdesk/). It uses built-in sample documents and a browser mock API, so it does not read your local files, call a real AI provider, or automate Word/WPS. Changes reset when the page reloads. The full watched-folder, local database, real AI, and desktop integrations require the local deployment below.
 
-## macOS desktop installer (Apple Silicon)
+## Install and use
 
-You can build a desktop app that does not require a separate Node.js installation. The packaging script currently supports Apple Silicon macOS (arm64):
+### 1. Download and install on macOS
+
+The current package supports **Apple Silicon Macs only (M1, M2, M3, M4, etc., arm64)**. Intel Macs and Windows are not currently supported. No Node.js installation or command-line work is required.
+
+1. Open the [LitDesk v0.1.0 release](https://github.com/Zc-RUC/litdesk/releases/tag/v0.1.0) and download **LitDesk-0.1.0-arm64.dmg**.
+2. Open the DMG and drag **LitDesk** into **Applications**.
+3. Launch LitDesk from Applications or Launchpad. This build uses an ad-hoc local signature rather than Apple Developer signing and notarization, so you may need to **right-click LitDesk → Open** in Finder and confirm on first launch.
+4. If no window appears, click the LitDesk icon in the Dock. Use **LitDesk → Quit LitDesk** or `Cmd+Q` to quit; the local service stops with the app.
+
+The release also includes a `.sha256` file. To verify the download, run `shasum -a 256 ~/Downloads/LitDesk-0.1.0-arm64.dmg` and compare the result with that file.
+
+### 2. Import papers and everyday use
+
+1. Choose **Manage folders → Choose system folder** and select a folder containing PDFs, or enter its absolute path.
+2. Existing PDFs are imported automatically. Keep the app running to detect new, edited, renamed, removed, or restored files. Original PDFs are never moved or rewritten.
+3. Select a paper to edit metadata, open the PDF reader, add tags, or take notes. Select text in a PDF to create an excerpt with its page number.
+4. Use **Details → One-click AI completion** for one paper, or select multiple papers (including **Select all**) and click **Batch AI completion**. Papers are processed sequentially, only empty fields are filled, and you can cancel without losing completed changes.
+5. Search with `Cmd+K`. Select papers and click **Cite** or press `Cmd+Shift+C` to open Citation Studio.
+
+### 3. Optional AI setup
+
+Library management, reading, notes, and citations work without AI.
+
+Open **Settings**, enter an OpenAI-compatible **Base URL, model name, and API key**, then click **Save and test connection**. Text is sent only after you explicitly test the connection, request an analysis, or run metadata completion.
+
+- **Cloud API:** the provider must support `/chat/completions`; you need a compatible model and valid credentials. Token charges may apply.
+- **Free local models:** after installing Ollama and downloading a model, use `http://127.0.0.1:11434/v1`, the model name (for example `qwen3:8b`), and leave the API key blank. Model downloads use disk space and RAM; speed and quality depend on your computer.
+- **Scanned PDFs:** OCR is required before reliable text extraction and AI analysis.
+
+### 4. Insert citations into WPS / Word
+
+1. Install WPS Office and/or Microsoft Word, open the target document, and place the cursor.
+2. Select papers in LitDesk, open Citation Studio, choose a CSL style, and select **In-text citation** or **Bibliography**.
+3. Click **Insert to WPS** or **Insert to Word** and grant Automation/Accessibility permission when macOS asks.
+4. Clicking or selecting a citation can show light-gray field shading, depending on the application's field-shading setting.
+
+Field insertion has been verified in WPS on macOS, but not in Microsoft Word. Zotero-style automatic citation refresh across the document is not currently supported.
+
+### 5. Data backup, migration, updates, and uninstall
+
+- Desktop data is stored in `~/Library/Application Support/LitDesk/data`, including the SQLite library, notes, AI analyses, and local settings.
+- The desktop app does not automatically migrate browser-version data. To migrate, stop the browser service and quit the desktop app, then back up and copy the contents of the original `data/` into this directory. Do not write inside the `.app` bundle.
+- PDFs remain in their original folders. Select the folder again if its path changes.
+- To update, quit the app and replace the old LitDesk in Applications with the version from the new DMG. Your data directory is preserved.
+- To uninstall, delete LitDesk from Applications. Personal data is not removed automatically; only delete the data directory after backing up anything you no longer need.
+
+### Troubleshooting
+
+- **The library is empty after installation:** select a PDF folder first. Desktop and browser versions use separate data directories, so old data does not appear automatically.
+- **AI fails:** check the Base URL, model name, API key, network, and provider balance. For local models, confirm Ollama is running and the model is downloaded.
+- **Text cannot be recognized:** run OCR on scanned PDFs first.
+- **Citation insertion fails:** bring WPS/Word to the foreground and check LitDesk's Automation/Accessibility permissions.
+
+## Build the macOS installer (developers)
+
+On Apple Silicon macOS (arm64), run:
 
 ```bash
 npm run dist:mac
 ```
 
-Artifacts:
+This creates `dist-desktop/mac-arm64/LitDesk.app` and `dist-desktop/LitDesk-0.1.0-arm64.dmg`. The package includes Electron and the local Node service, so users do not need to run `npm start`. The first build downloads the Electron runtime. Use `npm run desktop` for desktop development and `npm run icon:mac` to regenerate the icons.
 
-- `dist-desktop/mac-arm64/LitDesk.app` — the runnable desktop application.
-- `dist-desktop/LitDesk-0.1.0-arm64.dmg` — the installer image; open it and drag LitDesk to Applications.
-
-The package includes Electron and the local Node service, so users do not need to run `npm start`. The first build downloads the Electron runtime. Use `npm run desktop` for desktop development and `npm run icon:mac` to regenerate the icons.
-
-The current build uses an **ad-hoc local signature**, not an Apple Developer signature or notarization. You may need to right-click the app and choose **Open** on first launch. Configure your own Apple Developer certificate for formal distribution.
-
-Desktop data is stored separately in `~/Library/Application Support/LitDesk/data`; it does not automatically read or migrate browser-version data on first launch. To migrate, stop the browser service and quit the desktop app, then back up and copy the contents of the original `data/` into this directory. Do not write inside the `.app` bundle. PDFs remain in their original folders; select the folder again if its path has changed.
-
-WPS/Word insertion still requires the corresponding applications and Automation/Accessibility permission for LitDesk. Word insertion has not been verified on a live document. Build artifacts stay in `dist-desktop/` and are not committed to Git. Packages never include your PDFs, library database, or API key.
+Build artifacts stay in `dist-desktop/` and are not committed to Git. Packages never include your PDFs, library database, or API key. Configure your own Apple Developer signature and notarization for formal distribution.
 
 ## Local deployment
 
